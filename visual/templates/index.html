@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SynapseOS — Live Fabric</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="logo">
+        <span class="dot"></span>
+        SYNAPSEOS
+      </div>
+      <div class="subtitle">Self-Organising Neuromorphic Fabric</div>
+    </header>
+
+    <div class="dashboard">
+      <!-- Left: controls + stats -->
+      <aside class="panel">
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="label">Generation</div>
+            <div class="value" id="gen">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Cells</div>
+            <div class="value" id="ncells">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Links</div>
+            <div class="value" id="nlinks">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Accuracy</div>
+            <div class="value accent" id="acc">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Energy</div>
+            <div class="value" id="energy">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Fitness</div>
+            <div class="value" id="fit">—</div>
+          </div>
+          <div class="stat">
+            <div class="label">Maturity</div>
+            <div class="value" id="maturity">—</div>
+          </div>
+        </div>
+
+        <div class="roles-bar" id="roles-bar"></div>
+
+        <div class="controls">
+          <button id="btn-start" class="primary">▶ Start</button>
+          <button id="btn-stop">⏸ Pause</button>
+          <button id="btn-step">Step</button>
+          <button id="btn-reset">Reset</button>
+          <button id="btn-damage" class="danger">💥 Damage</button>
+          <button id="btn-killer" class="danger">☠ Killer Demo</button>
+        </div>
+
+        <div class="task-row">
+          <label>Task</label>
+          <select id="task-select">
+            <option value="anomaly">Anomaly Detection</option>
+            <option value="pattern">Pattern Recognition</option>
+          </select>
+        </div>
+
+        <div class="speed-row">
+          <label>Speed</label>
+          <input type="range" id="speed" min="0.05" max="0.6" step="0.05" value="0.15" />
+        </div>
+
+        <div class="message" id="message">Ready</div>
+
+        <div class="legend">
+          <div><span class="swatch processing"></span> Processing</div>
+          <div><span class="swatch memory"></span> Memory</div>
+          <div><span class="swatch routing"></span> Routing</div>
+          <div><span class="swatch sensing"></span> Sensing</div>
+          <div><span class="swatch decision"></span> Decision</div>
+        </div>
+      </aside>
+
+      <!-- Center: live graph -->
+      <main class="canvas-wrap">
+        <canvas id="graph"></canvas>
+      </main>
+
+      <!-- Right: mini history sparkline -->
+      <aside class="panel slim">
+        <div class="label">Accuracy history</div>
+        <canvas id="spark" width="180" height="80"></canvas>
+        <div class="label" style="margin-top:1.5rem">Role mix</div>
+        <div id="role-list"></div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

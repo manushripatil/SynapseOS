@@ -1,0 +1,228 @@
+:root {
+  --bg: #0b0f14;
+  --panel: #121820;
+  --border: #1e2a38;
+  --text: #e6edf5;
+  --muted: #7a8ba0;
+  --accent: #3dd6c6;
+  --danger: #ff6b6b;
+  --processing: #e74c3c;
+  --memory: #3498db;
+  --routing: #2ecc71;
+  --sensing: #f39c12;
+  --decision: #9b59b6;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.logo {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: 260px 1fr 200px;
+  gap: 1rem;
+  height: calc(100vh - 100px);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  overflow-y: auto;
+}
+
+.panel.slim { padding: 0.9rem; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.stat {
+  background: #0e141c;
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+}
+
+.stat .label {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stat .value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.stat .value.accent { color: var(--accent); }
+
+.roles-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #0e141c;
+}
+
+.roles-bar span {
+  display: block;
+  height: 100%;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+button {
+  background: #1a2430;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+button:hover { background: #243040; border-color: #2e4050; }
+button.primary { background: #0d3d38; border-color: #1a6b60; color: var(--accent); }
+button.primary:hover { background: #11554d; }
+button.danger { background: #3a1a1a; border-color: #6b2a2a; color: var(--danger); }
+button.danger:hover { background: #4a2222; }
+
+.task-row, .speed-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.task-row label, .speed-row label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+select, input[type="range"] {
+  width: 100%;
+  background: #0e141c;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.4rem;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.message {
+  font-size: 0.75rem;
+  color: var(--muted);
+  min-height: 2.2em;
+  line-height: 1.35;
+}
+
+.legend {
+  margin-top: auto;
+  font-size: 0.72rem;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+.swatch.processing { background: var(--processing); }
+.swatch.memory { background: var(--memory); }
+.swatch.routing { background: var(--routing); }
+.swatch.sensing { background: var(--sensing); }
+.swatch.decision { background: var(--decision); }
+
+.canvas-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+#graph {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#role-list {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 1000px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .canvas-wrap { height: 420px; }
+}
