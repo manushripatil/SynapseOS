@@ -1,4 +1,4 @@
-/* SynapseOS Visual Simulator — frontend */
+/* SynapseOS Visual Simulator — frontend (free-tier friendly) */
 
 const COLORS = {
   processing: "#e74c3c",
@@ -9,8 +9,11 @@ const COLORS = {
 };
 
 let state = null;
-let nodes = {};       // id -> {x, y, vx, vy}
+let nodes = {};
 let animId = null;
+let busy = false;
+let pollTimer = null;
+let speedTimer = null;
 
 const canvas = document.getElementById("graph");
 const ctx = canvas.getContext("2d");
@@ -26,9 +29,6 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// ------------------------------------------------------------------
-// API helpers
-// ------------------------------------------------------------------
 async function api(path, method = "GET", body = null) {
   const opts = { method, headers: { "Content-Type": "application/json" } };
   if (body) opts.body = JSON.stringify(body);
@@ -37,9 +37,22 @@ async function api(path, method = "GET", body = null) {
 }
 
 async function refresh() {
-  state = await api("/api/state");
-  updateUI();
-  ensureNodes();
+  try {
+    state = await api("/api/state");
+    updateUI();
+    ensureNodes();
+  } catch (e) {
+    /* ignore transient network blips */
+  }
+}
+
+function setBusy(on) {
+  busy = on;
+  document.querySelectorAll("button").forEach((b) => {
+    if (b.id === "btn-stop") return; // stop always allowed
+    b.disabled = on;
+    b.style.opacity = on ? "0.6" : "1";
+  });
 }
 
 function updateUI() {
@@ -52,26 +65,27 @@ function updateUI() {
   document.getElementById("fit").textContent = state.fitness.toFixed(2);
   if (document.getElementById("maturity")) {
     document.getElementById("maturity").textContent =
-      (state.avg_maturity != null ? state.avg_maturity.toFixed(2) : "—");
+      state.avg_maturity != null ? state.avg_maturity.toFixed(2) : "—";
   }
   document.getElementById("message").textContent = state.message;
 
-  // Role bar
   const bar = document.getElementById("roles-bar");
   bar.innerHTML = "";
   const order = ["processing", "memory", "routing", "sensing", "decision"];
   order.forEach((k) => {
     const v = state.roles[k] || 0;
     const s = document.createElement("span");
-    s.style.width = (v * 100) + "%";
+    s.style.width = v * 100 + "%";
     s.style.background = COLORS[k];
     bar.appendChild(s);
   });
 
-  // Role list
   const list = document.getElementById("role-list");
   list.innerHTML = order
-    .map((k) => `<div><span class="swatch ${k}"></span>${k}: ${((state.roles[k] || 0) * 100).toFixed(0)}%</div>`)
+    .map(
+      (k) =>
+        `<div><span class="swatch ${k}"></span>${k}: ${((state.roles[k] || 0) * 100).toFixed(0)}%</div>`
+    )
     .join("");
 
   drawSpark();
@@ -82,32 +96,25 @@ function drawSpark() {
   const h = spark.height;
   sparkCtx.clearRect(0, 0, w, h);
   if (!state || !state.history || state.history.length < 2) return;
-
   const hist = state.history;
-  const maxA = 1.0;
   sparkCtx.beginPath();
   sparkCtx.strokeStyle = "#3dd6c6";
   sparkCtx.lineWidth = 2;
   hist.forEach((p, i) => {
     const x = (i / (hist.length - 1)) * (w - 4) + 2;
-    const y = h - 4 - (p.acc / maxA) * (h - 8);
+    const y = h - 4 - (p.acc / 1.0) * (h - 8);
     if (i === 0) sparkCtx.moveTo(x, y);
     else sparkCtx.lineTo(x, y);
   });
   sparkCtx.stroke();
 }
 
-// ------------------------------------------------------------------
-// Force layout (simple)
-// ------------------------------------------------------------------
 function ensureNodes() {
   if (!state) return;
   const ids = new Set(state.cells.map((c) => c.id));
-  // remove dead
   Object.keys(nodes).forEach((id) => {
     if (!ids.has(id)) delete nodes[id];
   });
-  // add new
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
   state.cells.forEach((c, i) => {
@@ -115,8 +122,8 @@ function ensureNodes() {
       const angle = (i / state.cells.length) * Math.PI * 2;
       const r = Math.min(w, h) * 0.28;
       nodes[c.id] = {
-        x: w / 2 + Math.cos(angle) * r + (Math.random() - 0.5) * 30,
-        y: h / 2 + Math.sin(angle) * r + (Math.random() - 0.5) * 30,
+        x: w / 2 + Math.cos(angle) * r + (Math.random() - 0.5) * 20,
+        y: h / 2 + Math.sin(angle) * r + (Math.random() - 0.5) * 20,
         vx: 0,
         vy: 0,
       };
@@ -130,7 +137,6 @@ function tickPhysics() {
   const h = canvas.clientHeight;
   const ids = state.cells.map((c) => c.id);
 
-  // repulsion
   for (let i = 0; i < ids.length; i++) {
     for (let j = i + 1; j < ids.length; j++) {
       const a = nodes[ids[i]];
@@ -149,7 +155,6 @@ function tickPhysics() {
     }
   }
 
-  // attraction along links
   state.links.forEach((l) => {
     const a = nodes[l.source];
     const b = nodes[l.target];
@@ -157,8 +162,7 @@ function tickPhysics() {
     let dx = b.x - a.x;
     let dy = b.y - a.y;
     let dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
-    const ideal = 90;
-    const force = (dist - ideal) * 0.012 * l.strength;
+    const force = (dist - 90) * 0.012 * l.strength;
     dx = (dx / dist) * force;
     dy = (dy / dist) * force;
     a.vx += dx;
@@ -167,7 +171,6 @@ function tickPhysics() {
     b.vy -= dy;
   });
 
-  // center gravity + damping
   ids.forEach((id) => {
     const n = nodes[id];
     if (!n) return;
@@ -186,10 +189,8 @@ function draw() {
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
   ctx.clearRect(0, 0, w, h);
-
   if (!state) return;
 
-  // links
   state.links.forEach((l) => {
     const a = nodes[l.source];
     const b = nodes[l.target];
@@ -202,7 +203,6 @@ function draw() {
     ctx.stroke();
   });
 
-  // nodes
   state.cells.forEach((c) => {
     const n = nodes[c.id];
     if (!n) return;
@@ -210,13 +210,11 @@ function draw() {
     const r = 6 + 9 * Math.min(1, c.activity);
     const mat = c.maturity || 0;
 
-    // glow (brighter when more mature)
     ctx.beginPath();
     ctx.arc(n.x, n.y, r + 3 + mat * 3, 0, Math.PI * 2);
     ctx.fillStyle = color + (mat > 0.5 ? "44" : "28");
     ctx.fill();
 
-    // body
     ctx.beginPath();
     ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
     ctx.fillStyle = color;
@@ -225,7 +223,6 @@ function draw() {
     ctx.lineWidth = mat > 0.6 ? 2 : 1.5;
     ctx.stroke();
 
-    // label
     ctx.fillStyle = "#e6edf5";
     ctx.font = "9px monospace";
     ctx.textAlign = "center";
@@ -240,60 +237,104 @@ function loop() {
 }
 
 // ------------------------------------------------------------------
-// Controls
+// Controls — Start/Stop are instant; heavy actions show busy state
 // ------------------------------------------------------------------
 document.getElementById("btn-start").onclick = async () => {
   await api("/api/start", "POST");
+  if (state) {
+    state.running = true;
+    state.message = "Running…";
+    updateUI();
+  }
   poll();
 };
+
 document.getElementById("btn-stop").onclick = async () => {
   await api("/api/stop", "POST");
+  if (state) {
+    state.running = false;
+    state.message = "Paused";
+    updateUI();
+  }
 };
+
 document.getElementById("btn-step").onclick = async () => {
-  state = await api("/api/step", "POST");
-  updateUI();
-  ensureNodes();
+  if (busy) return;
+  setBusy(true);
+  try {
+    state = await api("/api/step", "POST");
+    updateUI();
+    ensureNodes();
+  } finally {
+    setBusy(false);
+  }
 };
+
 document.getElementById("btn-reset").onclick = async () => {
-  state = await api("/api/reset", "POST", { n_cells: 36 });
-  nodes = {};
-  updateUI();
-  ensureNodes();
+  if (busy) return;
+  setBusy(true);
+  try {
+    state = await api("/api/reset", "POST", { n_cells: 20 });
+    nodes = {};
+    updateUI();
+    ensureNodes();
+  } finally {
+    setBusy(false);
+  }
 };
+
 document.getElementById("btn-damage").onclick = async () => {
-  state = await api("/api/damage", "POST", { n: 3 });
-  updateUI();
-  ensureNodes();
+  if (busy) return;
+  setBusy(true);
+  try {
+    state = await api("/api/damage", "POST", { n: 2 });
+    updateUI();
+    ensureNodes();
+  } finally {
+    setBusy(false);
+  }
 };
+
 document.getElementById("btn-killer").onclick = async () => {
-  if (!confirm("Destroy ~35% of cells and trigger recovery?")) return;
-  state = await api("/api/killer_demo", "POST", { frac: 0.35 });
-  updateUI();
-  ensureNodes();
-  // auto-start recovery evolution
-  await api("/api/start", "POST");
-  poll();
+  if (busy) return;
+  if (!confirm("Destroy ~30% of cells and start recovery?")) return;
+  setBusy(true);
+  try {
+    state = await api("/api/killer_demo", "POST", { frac: 0.3 });
+    updateUI();
+    ensureNodes();
+    await api("/api/start", "POST");
+    if (state) state.running = true;
+    poll();
+  } finally {
+    setBusy(false);
+  }
 };
+
 document.getElementById("task-select").onchange = async (e) => {
   await api("/api/task", "POST", { task: e.target.value });
 };
-document.getElementById("speed").oninput = async (e) => {
-  await api("/api/speed", "POST", { speed: parseFloat(e.target.value) });
+
+// Debounce speed slider — was flooding the server on every tick
+document.getElementById("speed").oninput = (e) => {
+  clearTimeout(speedTimer);
+  speedTimer = setTimeout(() => {
+    api("/api/speed", "POST", { speed: parseFloat(e.target.value) });
+  }, 200);
 };
 
-let pollTimer = null;
 function poll() {
   if (pollTimer) clearInterval(pollTimer);
+  // 600ms — much less load than 200ms on free CPU
   pollTimer = setInterval(async () => {
     await refresh();
     if (state && !state.running) {
       clearInterval(pollTimer);
       pollTimer = null;
     }
-  }, 200);
+  }, 600);
 }
 
-// boot
 refresh().then(() => {
   loop();
 });
