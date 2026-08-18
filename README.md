@@ -1,133 +1,100 @@
 # SynapseOS
-**A Self-Organising Neuromorphic Computing Architecture**  
-**Core Engine v1**
 
-> Computational cells dynamically evolve their roles and connectivity  
-> to create task-specific processing structures.
+**A self-organising neuromorphic computing architecture**
+
+Computational cells dynamically evolve their roles and connectivity to create task-specific processing structures.
+
+> SynapseOS is a research-style software prototype: identical cells change roles, rewire, grow/shrink, mature under an energy budget, and can reorganise after damage.
+
+---
 
 ## One-sentence description
+
 SynapseOS is a self-organising neuromorphic computing architecture where computational cells dynamically evolve their roles and connectivity to create task-specific processing structures.
 
-## Project Structure
+---
 
-```
+## Live demo
+
+After deploy (e.g. Render free tier):
+
+- Open your service URL (first load may take 30–60s while the free instance wakes)
+- **Start** — live evolution
+- **Damage** / **Killer Demo** — destroy cells and watch recovery
+- Cells are coloured by dominant role; links thicken/thin as strength changes
+
+Link: https://synapseos-y43e.onrender.com
+
+## What it does
+
+| Capability | Behaviour |
+|------------|-----------|
+| **Roles** | Soft mix over processing / memory / routing / sensing / decision |
+| **Connections** | Hebbian strengthen, decay when unused, structural add/prune |
+| **Population** | Cells can be born or die (self-sizing fabric) |
+| **Maturation** | Plasticity falls as cells specialise |
+| **Energy** | Global budget; costly low-utility structure is discouraged |
+| **Damage recovery** | Delete cells + links → re-evolve under boosted plasticity |
+| **Task shift** | Same fabric can adapt when the evaluation task changes |
+
+This is a **simulation prototype**, not a hardware chip or a large trained neural net.
+
+---
+
+## Project structure
+
+```text
 synapseos/
-├── cell.py          # Adaptive computational cell + Connection
-├── network.py       # Adaptive Cell Fabric
-├── evolution.py     # Evolution Engine + task functions
-├── simulator.py     # High-level experiment orchestration
-├── visualiser.py    # ASCII + matplotlib visualisations
-├── persistence.py   # Save / load evolved networks
-├── runner.py        # Multi-seed statistical experiments
-├── experiments.py   # Single-run experiments
-└── README.md
+├── cell.py            # Cell + Connection (roles, maturity, Hebbian links)
+├── network.py         # Adaptive cell fabric (activate, birth/death)
+├── evolution.py       # Fitness, plasticity, population control, tasks
+├── simulator.py       # Experiment orchestration + damage injection
+├── persistence.py     # Save / load evolved networks (JSON)
+├── visualiser.py      # ASCII + matplotlib helpers
+├── experiments.py     # Single-run experiment suite
+├── runner.py          # Multi-seed statistics (mean ± std)
+├── demo_recovery.py   # Phase 4 killer damage-recovery demo
+├── requirements.txt
+├── Dockerfile / Procfile
+└── visual/            # Live web simulator
+    ├── app.py
+    ├── wsgi.py
+    ├── static/
+    └── templates/
 ```
 
-## Quick Start
 
-```bash
-cd synapseos
+---
 
-# Single-run experiments
-python3 experiments.py          # all three
-python3 experiments.py --exp 2  # damage recovery only
+## Coordination protocol (short)
 
-# Multi-seed statistics (recommended)
-python3 runner.py --seeds 6
-python3 runner.py --exp 1 --seeds 8
-```
+1. **Activate** the fabric with a task input for a few message-passing steps.
+2. Cells update **activity**; roles drift slowly toward useful specialisations.
+3. **Connections** update from co-activity (Hebbian); weak/unused links decay and may be pruned.
+4. **Fitness** ≈ accuracy − energy − complexity guides how aggressive plasticity is.
+5. **Population**: idle/inefficient cells may die; under capacity + energy headroom, new cells may be born and lightly wired in.
+6. **Maturity** reduces plasticity so specialised cells lock in more than juveniles.
 
-## Core Engine v1 Features
+### What "damage" does
 
-- Adaptive cells with soft role vectors
-- Dynamic connections (Hebbian + structural plasticity)
-- Fitness-driven evolution with elite protection
-- Numerical stability (clipped activations)
-- **Save / load** evolved fabrics (JSON)
-- **Multi-seed** experiment runner with mean ± std
-- Damage recovery + environment-shift experiments
+Selected cells are **permanently removed**, along with all incident connections. Accuracy usually drops immediately. Recovery is the same evolutionary loop with **higher plasticity** (and optional birth/death): remaining cells re-specialise and rewire. A static network with no adaptation cannot reorganise.
 
-## Save / Load Example
 
-```python
-from network import Network
-from persistence import save_network, load_network
-from evolution import anomaly_detection_task
-from simulator import Simulator
+---
 
-sim = Simulator(n_cells=24, seed=7)
-sim.run_evolution(anomaly_detection_task, generations=15, verbose=False)
+## Roadmap status
 
-save_network(sim.net, "my_fabric.json")
-net2 = load_network("my_fabric.json")
-print(net2.summary())
-```
+| Phase | Content | Status |
+|-------|---------|--------|
+| **0** | Core engine (cells, evolution, save/load, multi-seed) | Done |
+| **1** | Live visual simulator (web UI) | Done |
+| **2** | Self-organising population (birth/death) | Done |
+| **3** | Maturation, synaptic plasticity, energy economy | Done |
+| **4** | Killer damage-recovery demo | Done |
+| **5** | Packaging / docs / public presentation | In progress |
 
-## Dependencies
+---
 
-```bash
-pip3 install numpy matplotlib
-```
+## Honest scope
 
-## Roadmap (high level)
-
-- **Phase 0** – Core Engine v1 (this release)
-- **Phase 1** – Live visual simulator (web UI)
-- **Phase 2** – True self-organisation (cell birth/death)
-- **Phase 3** – Stronger biological mechanisms
-- **Phase 4** – Killer damage-recovery demo
-
-## Phase 1 — Visual Simulator
-
-```bash
-cd synapseos
-python3 visual/app.py
-```
-
-Then open **http://127.0.0.1:5050** in your browser.
-
-Controls:
-- **Start / Pause** — live evolution
-- **Step** — one generation
-- **Damage** — destroy 3 random cells and watch recovery
-- **Task** — switch between Anomaly Detection and Pattern Recognition
-- **Speed** — evolution rate
-
-You will see cells coloured by dominant role, links thickening/thinning, and the accuracy sparkline updating live.
-
-## Phase 2 — Self-Organising Population
-
-Cells can now **appear and disappear** on their own:
-
-- **Birth** — when fitness is good and capacity may help, a new cell is created with a role bias toward under-represented functions, then lightly wired in.
-- **Death** — chronically idle or almost disconnected cells are removed (population stays above a minimum).
-
-The fabric is no longer a fixed-size grid. It grows and shrinks as the task demands.
-
-Watch it in the visual simulator: cell count changes live, and the message bar shows `+born/-died`.
-
-## Phase 3 — Biological Mechanisms
-
-1. **Synaptic plasticity** — Hebbian / co-activity updates; unused links decay; expensive low-utility links pruned under energy pressure.
-2. **Cell maturation** — cells age; plasticity falls as they specialise; mature cells glow brighter in the visualiser.
-3. **Energy economy** — global budget per generation; cell activity + synapse maintenance cost energy; inefficient cells are more likely to die; birth only when energy allows.
-
-Watch **Maturity** climb in the UI as the fabric specialises.
-
-## Phase 4 — Killer Demo (Damage Recovery)
-
-Dramatic demonstration of self-repair:
-
-```bash
-python3 demo_recovery.py
-python3 demo_recovery.py --cells 80 --damage 0.40
-```
-
-Story:
-1. Train fabric to high accuracy
-2. Destroy ~35% of cells
-3. Accuracy collapses
-4. Fabric reorganises (boosted plasticity + birth/death)
-5. Compare against a static network that cannot recover
-
-In the visual simulator, use the **☠ Killer Demo** button to destroy 35% of cells and auto-start recovery.
+SynapseOS demonstrates **architecture-level adaptation** in a controllable software fabric. Task accuracy numbers depend on the simplified evaluation tasks and random seeds; use `runner.py` for multi-seed means. It is intended as a student / research prototype for discussion of self-organisation, plasticity, and recovery — not a production ML system.
