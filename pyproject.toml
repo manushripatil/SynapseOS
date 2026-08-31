@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synapseos"
+version = "1.1.0"
+description = "Self-organising neuromorphic computing fabric"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+viz = ["matplotlib>=3.7"]
+web = ["flask>=3.0"]
+all = ["matplotlib>=3.7", "flask>=3.0"]
+
+[tool.setuptools.packages.find]
+include = ["synapseos*"]

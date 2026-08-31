@@ -14,6 +14,34 @@ SynapseOS is a self-organising neuromorphic computing architecture where computa
 
 ---
 
+
+## Use as a library
+
+```bash
+cd synapseos
+pip3 install -e ".[all]"
+```
+
+```python
+from synapseos import Simulator, anomaly_detection_task, save_network
+
+sim = Simulator(n_cells=24, seed=7)
+sim.run_evolution(anomaly_detection_task, generations=15, verbose=False)
+print(sim.net.summary())
+save_network(sim.net, "my_fabric.json")
+```
+
+Core lives in `synapseos.core`. Demos and the web UI stay outside the engine:
+
+- `experiments/` — runner, suite, killer demo, **benchmark**
+- `visual/` — live web simulator
+
+```bash
+python3 experiments/benchmark.py --seeds 6 --cells 24
+python3 experiments/demo_recovery.py
+python3 examples/minimal.py
+```
+
 ## Live demo
 
 After deploy (e.g. Render free tier):
@@ -23,7 +51,15 @@ After deploy (e.g. Render free tier):
 - **Damage** / **Killer Demo** — destroy cells and watch recovery
 - Cells are coloured by dominant role; links thicken/thin as strength changes
 
-Link: https://synapseos-y43e.onrender.com
+Local visual UI:
+
+```bash
+pip3 install -r requirements.txt
+python3 visual/app.py
+# → http://127.0.0.1:5050
+```
+
+---
 
 ## What it does
 
@@ -63,6 +99,28 @@ synapseos/
     └── templates/
 ```
 
+---
+
+## Quick start
+
+```bash
+cd synapseos
+pip3 install -r requirements.txt
+
+# Killer demo (train → damage → recover)
+python3 demo_recovery.py
+python3 demo_recovery.py --cells 80 --damage 0.40
+
+# Multi-seed stats (recommended for claims)
+python3 runner.py --seeds 6
+python3 runner.py --exp 1 --seeds 8
+
+# Classic single-run suite
+python3 experiments.py
+
+# Live UI
+python3 visual/app.py
+```
 
 ---
 
@@ -79,6 +137,31 @@ synapseos/
 
 Selected cells are **permanently removed**, along with all incident connections. Accuracy usually drops immediately. Recovery is the same evolutionary loop with **higher plasticity** (and optional birth/death): remaining cells re-specialise and rewire. A static network with no adaptation cannot reorganise.
 
+---
+
+## Save / load
+
+```python
+from persistence import save_network, load_network
+from simulator import Simulator
+from evolution import anomaly_detection_task
+
+sim = Simulator(n_cells=24, seed=7)
+sim.run_evolution(anomaly_detection_task, generations=15, verbose=False)
+save_network(sim.net, "my_fabric.json")
+net2 = load_network("my_fabric.json")
+print(net2.summary())
+```
+
+---
+
+## Dependencies
+
+```bash
+pip3 install -r requirements.txt
+# core: numpy, matplotlib, flask
+# deploy: gunicorn (see Dockerfile / Procfile)
+```
 
 ---
 
